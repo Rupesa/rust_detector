@@ -1,8 +1,23 @@
 import cv2
 import numpy as np
 
+path = '/Users/ruisantos/Desktop/ano4/cv/rust_detector/'
+
+print("RUST DETECTOR")
+print("Select the folder where the image is:")
+print("1- Corrosion")
+print("2- No_Corrosion")
+choice = input("")
+if choice == '1':
+    path += 'Corrosion/'
+elif choice == '2':
+    path += 'No_Corrosion/'
+path += input("Insert the image's name: ")
+
+img = cv2.imread(path, 1)
+
 #Read the Rust Photograph
-img = cv2.imread('/Users/ruisantos/Desktop/ano4/cv/rust_detector/Corrosion/16.jpg', 1)
+#img = cv2.imread('/Users/ruisantos/Desktop/ano4/cv/rust_detector/Corrosion/16.jpg', 1)
 
 #Set different boundaries for different shades of rust
 boundaries1 = [ ([58, 57, 101], [76, 95, 162]) ]
@@ -42,7 +57,7 @@ for (lower4, upper4) in boundaries4:
     mask = cv2.inRange(img, lower4, upper4)
     output4 = cv2.bitwise_and(img, img, mask = mask)
 
-cv2.imshow("Output 4:", output4)
+#cv2.imshow("Output 4:", output4)
 
 new = []
 #print(img[50,50])
@@ -65,5 +80,7 @@ new = []
 #Combine the 3 different masks with the different shades into 1 image file
 final = cv2.bitwise_or(output1, output2, output3)
 final = cv2.bitwise_or(final, output4)
+
+cv2.imshow("original", img)
 cv2.imshow("final", final)
 cv2.waitKey(0)
