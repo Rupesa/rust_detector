@@ -1,7 +1,8 @@
 import cv2
 import numpy as np
 
-path = '/Users/ruisantos/Desktop/ano4/cv/rust_detector/'
+pathSantos = '/Users/ruisantos/Desktop/ano4/cv/rust_detector/'
+pathOliveira = 'C:/ect/ano4/cv/projeto2/rust_detector/'
 
 print("RUST DETECTOR")
 print("Select the folder where the image is:")
@@ -9,12 +10,12 @@ print("1- Corrosion")
 print("2- No_Corrosion")
 choice = input("")
 if choice == '1':
-    path += 'Corrosion/'
+    pathOliveira += 'Corrosion/'
 elif choice == '2':
-    path += 'No_Corrosion/'
-path += input("Insert the image's name: ")
+    pathOliveira += 'No_Corrosion/'
+pathOliveira += input("Insert the image's name: ")
 
-img = cv2.imread(path, 1)
+img = cv2.imread(pathOliveira, 1)
 
 #Read the Rust Photograph
 #img = cv2.imread('/Users/ruisantos/Desktop/ano4/cv/rust_detector/Corrosion/16.jpg', 1)
@@ -81,6 +82,18 @@ new = []
 final = cv2.bitwise_or(output1, output2, output3)
 final = cv2.bitwise_or(final, output4)
 
-cv2.imshow("original", img)
-cv2.imshow("final", final)
+
+
+# cv2.imshow("original", img)
+
+# Select ROI
+r = cv2.selectROI(img)
+
+# Crop image
+imCrop = final[int(r[1]):int(r[1]+r[3]), int(r[0]):int(r[0]+r[2])]
+
+# Display cropped image
+cv2.imshow("Image", imCrop)
+
+# cv2.imshow("final", final)
 cv2.waitKey(0)
