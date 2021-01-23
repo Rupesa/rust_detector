@@ -1,99 +1,115 @@
 import cv2
 import numpy as np
+import sys
+import os
 
-pathSantos = '/Users/ruisantos/Desktop/ano4/cv/rust_detector/'
-pathOliveira = 'C:/ect/ano4/cv/projeto2/rust_detector/'
+boundaries = [[ ([58, 57, 101], [76, 95, 162]) ]]
+boundaries += [[ ([26, 61, 111], [81, 144, 202]) ]]
+boundaries += [[ ([44, 102, 167], [115, 169, 210]) ]]
+boundaries += [[ ([0, 20, 40], [50, 70, 150]) ]]
 
-print("RUST DETECTOR")
-print("Select the folder where the image is:")
-print("1- Corrosion")
-print("2- No_Corrosion")
-choice = input("")
-if choice == '1':
-    pathOliveira += 'Corrosion/'
-elif choice == '2':
-    pathOliveira += 'No_Corrosion/'
-pathOliveira += input("Insert the image's name: ")
+def getPercent(img):
+    totalPicels = img.shape[0] * img.shape[1]
+    rustPixels = 0
+    for j in range(img.shape[0]):
+        for i in range(img.shape[1]):
+            if img[j,i][0] != 0 and img[j,i][1] != 0 and img[j,i][2] != 0:
+                rustPixels += 1
+    return (rustPixels / totalPicels) * 100
 
-img = cv2.imread(pathOliveira, 1)
+def processImg(img):
+    output = []
 
-#Read the Rust Photograph
-#img = cv2.imread('/Users/ruisantos/Desktop/ano4/cv/rust_detector/Corrosion/16.jpg', 1)
+    for b in boundaries:
+        for (l, u) in b:
+            l = np.array(l, dtype = "uint8")
+            u = np.array(u, dtype = "uint8")
+            mask = cv2.inRange(img, l, u)
+            output += [cv2.bitwise_and(img, img, mask = mask)]
 
-#Set different boundaries for different shades of rust
-boundaries1 = [ ([58, 57, 101], [76, 95, 162]) ]
-boundaries2 = [ ([26, 61, 111], [81, 144, 202]) ]
-boundaries3 = [ ([44, 102, 167], [115, 169, 210]) ]
-boundaries4 = [ ([0, 20, 40], [50, 70, 150]) ]
-#boundaries4 = [ ([0, 0, 0], [255, 255, 255]) ]
+    final = output[0]
+    for o in output:
+        final = cv2.bitwise_or(final, o)
+    return final
 
-#Highlight out the shades of rust
-for (lower1, upper1) in boundaries1:
-    lower1 = np.array(lower1, dtype = "uint8")
-    upper1 = np.array(upper1, dtype = "uint8")
-    mask = cv2.inRange(img, lower1, upper1)
-    output1 = cv2.bitwise_and(img, img, mask = mask)
+print("\nRUST DETECTOR")
+while(True):
 
-#cv2.imshow("Output 1:", output1)
+    #cv2.destroyAllWindows()
+    path = ''
+    choice = ''
+    while choice != '1' and choice != '2' and choice != '3':
+        print("\nSelect an option:")
+        print("1 Detect rust on a single image")
+        print("2 Detect rust on several images")
+        print("3 Quit")
+        choice = input("")
 
-for (lower2, upper2) in boundaries2:
-    lower2 = np.array(lower2, dtype = "uint8")
-    upper2 = np.array(upper2, dtype = "uint8")
-    mask = cv2.inRange(img, lower2, upper2)
-    output2 = cv2.bitwise_and(img, img, mask = mask)
+    if choice == '1': # Detect rust on a single image
+        choice = ''
+        while choice != '1' and choice != '2':
+            print("Select the folder where the image is:")
+            print("1 Corrosion")
+            print("2 No_Corrosion")
+            choice = input("")
+            if choice == '1':
+                path += 'Corrosion/'
+            elif choice == '2':
+                path += 'No_Corrosion/'
 
-#cv2.imshow("Output 2:", output2)
+        print('List of files:\n'+str(os.listdir(path)))
+        path += input("Insert the image's name: ")
+        if not os.path.isfile(path):
+            print("Error: Image not found")
+            sys.exit()
 
-for (lower3, upper3) in boundaries3:
-    lower3 = np.array(lower3, dtype = "uint8")
-    upper3 = np.array(upper3, dtype = "uint8")
-    mask = cv2.inRange(img, lower3, upper3)
-    output3 = cv2.bitwise_and(img, img, mask = mask)
+        img = cv2.imread(path, 1)
+        final = processImg(img)
 
-#cv2.imshow("Output 3:", output3)
+        crop = input("Do you want to crop the image ? (y/n)\n")
+        if crop == 'y':
+            # Select ROI
+            r = cv2.selectROI(img)
+            # Crop image
+            final = final[int(r[1]):int(r[1]+r[3]), int(r[0]):int(r[0]+r[2])]
+        else:
+            cv2.imshow("Original", img)
 
-for (lower4, upper4) in boundaries4:
-    lower4 = np.array(lower4, dtype = "uint8")
-    upper4 = np.array(upper4, dtype = "uint8")
-    mask = cv2.inRange(img, lower4, upper4)
-    output4 = cv2.bitwise_and(img, img, mask = mask)
+        rustPercent = getPercent(final)
+        print("Percentage of rust in the image: %.2f%%"%rustPercent)
+        # Display cropped image
+        cv2.imshow("Processed_Image", final)
+        # cv2.imshow("final", final)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+        cv2.waitKey(1)
+        #input("")
 
-#cv2.imshow("Output 4:", output4)
+    elif choice == '2': # Detect rust on several images
+        folder = input("Select the folder where the image is:\n") + '/'
+        if not os.path.isdir(folder):
+            print("Error: Directory not found")
+            sys.exit()
+        files = os.listdir(folder)
+        print(files)
+        crop = input("Do you want to set a minimum percentage of rust per image ? (y/n)\n")
+        minPercent = 0
+        if crop == 'y':
+            minPercent = int(input("Insert the minimum percentage\n"))
 
-new = []
-#print(img[50,50])
-# for j in range(img.shape[0]):
-#     for i in range(img.shape[1]):
-#         #print(img[j,i][0])
-#         #if img[j,i][0] in range([40, 20, 0], [190, 169, 97]):
-#         if img[j,i][0] in range(40, 129):
-#             new = []
-#         else:
-#             img[j,i] = [0,0,0]
+        finalImgsNames = []
+        for f in files:
+            img = cv2.imread(folder+f, 1)
+            final = processImg(img)
+            rustPercent = getPercent(final)
+            print(f+" - %.2f%%"%rustPercent)
+            if rustPercent >= minPercent:
+                finalImgsNames += [f]
+        
+        print("List of images: ")
+        print(finalImgsNames)
 
-# cv2.imshow("img", img)
+    elif choice == '3':
+        sys.exit()
 
-# for l in img:
-#     for c in l:
-#         new[]
-
-
-#Combine the 3 different masks with the different shades into 1 image file
-final = cv2.bitwise_or(output1, output2, output3)
-final = cv2.bitwise_or(final, output4)
-
-
-
-# cv2.imshow("original", img)
-
-# Select ROI
-r = cv2.selectROI(img)
-
-# Crop image
-imCrop = final[int(r[1]):int(r[1]+r[3]), int(r[0]):int(r[0]+r[2])]
-
-# Display cropped image
-cv2.imshow("Image", imCrop)
-
-# cv2.imshow("final", final)
-cv2.waitKey(0)
+            
