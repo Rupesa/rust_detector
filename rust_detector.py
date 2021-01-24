@@ -2,35 +2,71 @@ import cv2
 import numpy as np
 import sys
 import os
+from progress.bar import Bar
 
 boundaries = [[ ([58, 57, 101], [76, 95, 162]) ]]
 boundaries += [[ ([26, 61, 111], [81, 144, 202]) ]]
 boundaries += [[ ([44, 102, 167], [115, 169, 210]) ]]
 boundaries += [[ ([0, 20, 40], [50, 70, 150]) ]]
 
-def getPercent(img):
-    totalPicels = img.shape[0] * img.shape[1]
-    rustPixels = 0
-    for j in range(img.shape[0]):
-        for i in range(img.shape[1]):
-            if img[j,i][0] != 0 and img[j,i][1] != 0 and img[j,i][2] != 0:
-                rustPixels += 1
-    return (rustPixels / totalPicels) * 100
-
 def processImg(img):
+    bar = Bar('Applying masks', max=4)
     output = []
-
     for b in boundaries:
         for (l, u) in b:
             l = np.array(l, dtype = "uint8")
             u = np.array(u, dtype = "uint8")
             mask = cv2.inRange(img, l, u)
             output += [cv2.bitwise_and(img, img, mask = mask)]
+            bar.next()
 
     final = output[0]
     for o in output:
         final = cv2.bitwise_or(final, o)
+    bar.finish()
     return final
+
+def getIntensityImg(final):
+    bw = cv2.cvtColor(final, cv2.COLOR_BGR2GRAY)
+
+    totalPixels = final.shape[0] * final.shape[1]
+    bar = Bar('Processing', max=totalPixels)
+    noRustPixels = 0
+    for j in range(final.shape[0]):
+        for i in range(final.shape[1]):
+            v = final[j,i][0]
+            if (v <= 255) and (v >= 80):
+                final[j,i][0] = 0
+                final[j,i][1] = 255
+                final[j,i][2] = 255
+            elif (v < 80) and (v >= 30):
+                final[j,i][0] = 0
+                final[j,i][1] = 134
+                final[j,i][2] = 255
+            elif (v < 30) and (v > 0):
+                final[j,i][0] = 0
+                final[j,i][1] = 0
+                final[j,i][2] = 255
+            else:
+                noRustPixels += 1
+            bar.next()
+
+    percent = (1-(noRustPixels / totalPixels)) * 100
+    bar.finish()
+    return percent,bw,final
+
+
+def getPercent(img):
+    totalPixels = img.shape[0] * img.shape[1]
+    #bar = Bar('Processing', max=totalPixels)
+    rustPixels = 0
+    for j in range(img.shape[0]):
+        for i in range(img.shape[1]):
+            if img[j,i][0] != 0 and img[j,i][1] != 0 and img[j,i][2] != 0:
+                rustPixels += 1
+            #bar.next()
+    #bar.finish()
+    return (rustPixels / totalPixels) * 100
 
 print("\nRUST DETECTOR")
 while(True):
@@ -63,8 +99,12 @@ while(True):
             print("Error: Image not found")
             sys.exit()
 
+        rustPercent = None
         img = cv2.imread(path, 1)
-        final = processImg(img)
+        rust = processImg(img)
+        cv2.imshow("Processed_Image_1", rust)
+        rustPercent, bw, final = getIntensityImg(rust)
+        cv2.imshow('Black_&_White', bw)
 
         crop = input("Do you want to crop the image ? (y/n)\n")
         if crop == 'y':
@@ -75,10 +115,11 @@ while(True):
         else:
             cv2.imshow("Original", img)
 
-        rustPercent = getPercent(final)
+        if rustPercent == None:
+            rustPercent = getPercent(final)
         print("Percentage of rust in the image: %.2f%%"%rustPercent)
         # Display cropped image
-        cv2.imshow("Processed_Image", final)
+        cv2.imshow("Processed_Image_2", final)
         # cv2.imshow("final", final)
         cv2.waitKey(0)
         cv2.destroyAllWindows()
