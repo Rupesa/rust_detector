@@ -1,4 +1,4 @@
-rust_detector
+Rust Detector app developed on the Visual Computing course that uses the OpenCV library in python.
 In order to run the code it is necessary to install the packages cv2 and progress:
 -pip install opencv-python
 -pip install progress
